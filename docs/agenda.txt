@@ -1,0 +1,7 @@
+
+2018012.0616: I did the basics. thread example, plot example. I will use pyqtgraph for the plotting. 
+			  I need the basInitializer be finished. There should be a thread at start time.
+			  initializer should start first.
+			  initializer will check whether it is the first time that application is being run.
+			  if yes, initialize the db after that starts other threads. if no, just start threads.
+			   
