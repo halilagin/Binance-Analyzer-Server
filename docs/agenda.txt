@@ -1,4 +1,5 @@
-
+20180113.0735: candle thread done. writer and reader threads will be adapted. plotting will be managed by reader thread. 
+			   while reading only the updated areas will be plotted.
 2018012.0616: I did the basics. thread example, plot example. I will use pyqtgraph for the plotting. 
 			  I need the basInitializer be finished. There should be a thread at start time.
 			  initializer should start first.
