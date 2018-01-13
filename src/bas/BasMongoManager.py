@@ -11,6 +11,7 @@ import time
 from bas.BasBinanceTimeManager import basTimer, BasBinanceTimeInterval
 from bson.json_util import loads
 from bson.json_util import dumps
+from bson.objectid import ObjectId
 
 # see: https://docs.mongodb.com/manual/reference/mongo-shell/
 # see: https://docs.mongodb.com/manual/crud/
@@ -31,6 +32,17 @@ class BasMongoManager(object):
         self.dbbas = self.client.dbbas
         self.candles = self.dbbas.candles        
         self.trades = self.dbbas.trades
+    
+    def saveUpdate(self,collection, doc):
+
+#         if "_id" not in doc:
+#             collection.insert_one(doc)
+#             return
+        fo = collection.find_one({"timeInterval":int(doc["timeInterval"]), "openTime":int(doc["openTime"])})
+        if fo==None:
+            collection.insert_one(doc)
+        else:
+            collection.replace_one({"timeInterval":int(doc["timeInterval"]), "openTime":int(doc["openTime"])}, doc, True)
     def testConnection(self):
         pass
         candle_ = {"symbol":"XLMETH", 

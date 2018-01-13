@@ -33,5 +33,5 @@ class BasConfigManager(object):
     def write(self):
         configFile = self.params["config.file"]
         with io.open(configFile, 'w', encoding='utf8') as outfile:
-            yaml.dump(self.config, outfile, default_flow_style=False, allow_unicode=True)
+            yaml.dump(self.config.__dict__, outfile, default_flow_style=False, allow_unicode=True)
         

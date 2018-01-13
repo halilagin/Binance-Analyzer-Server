@@ -39,10 +39,12 @@ class BasBinanceManager(object):
         trades = self.client.get_recent_trades(symbol=symbol)
         #print(trades)
         
-    def getCandles(self, symbol="XLMETH", interval=Client.KLINE_INTERVAL_1MINUTE, limit=CANDLE_FETCH_LIMIT):
+    def getCandles(self, symbol="XLMETH", interval=Client.KLINE_INTERVAL_1MINUTE, limit=CANDLE_FETCH_LIMIT, startTime=None):
         pass
-        candles = self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
-        
+        if startTime==None:
+            candles = self.client.get_klines(symbol=symbol, interval=interval, limit=limit)
+        else:
+            candles = self.client.get_klines(symbol=symbol, interval=interval, startTime=startTime)
         return candles
     
     

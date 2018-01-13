@@ -6,6 +6,7 @@ Created on Jan 11, 2018
 import datetime
 import time
 import enum
+from binance.client import Client
 
 
 
@@ -27,13 +28,50 @@ class BasBinanceTimeInterval(enum.Enum):
     OneDay = 1 * 24 * 60* 60
     TwoDay = 2 * 24 * 60* 60
     ThreeDay = 3 * 24 * 60* 60
-    Week = 7 * 24 * 60* 60
+    OneWeek = 7 * 24 * 60* 60
     TwoWeek = 2 * 7 * 24 * 60* 60
-    Month = 1 * 30 * 24 * 60* 60
+    OneMonth = 1 * 30 * 24 * 60* 60
     TwoMonth = 2 * 30 * 24 * 60* 60
     ThreeMonth = 3 * 30 * 24 * 60* 60
     SixMonth = 6 * 30 * 24 * 60* 60
-    Year= 12 * 30 * 24 * 60* 60
+    oneYear= 1 * 12 * 30 * 24 * 60* 60
+
+class BinanceTimeIntervalWrapper(object):
+    pass
+    def __init__(self):
+        pass
+    
+    def kline(self, timeInterval):
+        if timeInterval==BasBinanceTimeInterval.OneMinute.value:
+            return Client.KLINE_INTERVAL_1MINUTE
+        elif timeInterval==BasBinanceTimeInterval.FiveMinute.value:
+            return Client.KLINE_INTERVAL_5MINUTE
+        elif timeInterval==BasBinanceTimeInterval.FifteenMinute.value:
+            return Client.KLINE_INTERVAL_15MINUTE
+        elif timeInterval==BasBinanceTimeInterval.ThirtyMinute.value:
+            return Client.KLINE_INTERVAL_30MINUTE
+        elif timeInterval==BasBinanceTimeInterval.OneHour.value:
+            return Client.KLINE_INTERVAL_1HOUR
+        elif timeInterval==BasBinanceTimeInterval.TwoHour.value:
+            return Client.KLINE_INTERVAL_2HOUR
+        elif timeInterval==BasBinanceTimeInterval.FourHour.value:
+            return Client.KLINE_INTERVAL_4HOUR
+        elif timeInterval==BasBinanceTimeInterval.SixHour.value:
+            return Client.KLINE_INTERVAL_6HOUR
+        elif timeInterval==BasBinanceTimeInterval.EightHour.value:
+            return Client.KLINE_INTERVAL_8HOUR
+        elif timeInterval==BasBinanceTimeInterval.TwelveHour.value:
+            return Client.KLINE_INTERVAL_12HOUR
+        elif timeInterval==BasBinanceTimeInterval.OneDay.value:
+            return Client.KLINE_INTERVAL_1DAY
+        elif timeInterval==BasBinanceTimeInterval.OneWeek.value:
+            return Client.KLINE_INTERVAL_1WEEK
+        elif timeInterval==BasBinanceTimeInterval.OneMonth.value:
+            return Client.KLINE_INTERVAL_1MONTH
+        
+        return Client.KLINE_INTERVAL_1MINUTE
+        
+basTimeintervalWrapper = BinanceTimeIntervalWrapper()        
 
 class BasBinanceTimeManager(object):
     '''

@@ -128,10 +128,12 @@ class BasBinanceCandleReader(object):
     
     def mapMongoDoc(self, candles, timeInterval):
         #time interval can be 1 minute, 5, minute, 15, 1 hour, 1 day. see: BasBinanceTimeInterval
+        if len(candles)==0:
+            return None
         map_ = [
          {
-          "timeInterval":timeInterval,
-          "openTime": float(c[0]),
+          "timeInterval":int(timeInterval),
+          "openTime": int(c[0]),
           "open":float(c[1]),
           "high":float(c[2]),
           "low":float(c[3]),

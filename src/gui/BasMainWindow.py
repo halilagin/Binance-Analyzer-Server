@@ -11,7 +11,8 @@ from bas.BasContext import _bas
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMenu, QVBoxLayout, QSizePolicy, QMessageBox, QWidget, QPushButton
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMenu, QVBoxLayout, QSizePolicy, QMessageBox, QWidget, QPushButton,\
+    QDialog, QProgressBar
 from PyQt5.QtGui import QIcon
 
 import random
@@ -23,6 +24,7 @@ import PyQt5
 from pyqtgraph.Qt import PYQT5, PYQT4
 from PyQt5.QtCore import pyqtSignal
 from bas.BasThreadCandleTracker import BasThreadCandleTracker
+from bas.BasThreadInitializer import BasThreadInitializer
 
 
 class PlotCanvas(FigureCanvas):
@@ -38,7 +40,7 @@ class PlotCanvas(FigureCanvas):
                 QSizePolicy.Expanding,
                 QSizePolicy.Expanding)
         FigureCanvas.updateGeometry(self)
-        self.plot()
+        #self.plot()
  
  
     def plot(self):
@@ -61,8 +63,20 @@ class PlotCanvas(FigureCanvas):
 
         self.draw()
  
- 
 
+class BasInitializerProgressBarWindow(QDialog):
+    pass
+
+    def __init__(self, parent = None):
+        super(BasInitializerProgressBarWindow, self).__init__(parent)
+
+        self.progress = QProgressBar(self)
+        self.progress.setGeometry(200, 80, 250, 20)
+        self.progress.setValue(5)
+        self.progress.move(10,10)
+        self.setWindowTitle("Initializing...")
+        self.setWindowModality(Qt.ApplicationModal)
+        
 
 #see: http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html
 class BasMainWindow(QMainWindow):
@@ -70,7 +84,8 @@ class BasMainWindow(QMainWindow):
     classdocs
     '''
     
-    pyqts_ = pyqtSignal([dict], name="newCandle")
+    initializerThreadSignal = pyqtSignal([dict], name="initializerThread")
+    candleTrackerThreadSignal = pyqtSignal([dict], name="candleTrackerThread")
 
 
 
@@ -84,48 +99,78 @@ class BasMainWindow(QMainWindow):
         self.title = 'Binance XLM/ETH timeline'
         self.width = 900
         self.height = 500
+        self.threadSignals={
+            "initializer":self.initializerThreadSignal,
+            "candleTracker":self.candleTrackerThreadSignal
+            }
+        
         
     
     def initUI(self):
+        
+        
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
  
         self.canvas = PlotCanvas(self, width=16, height=8)
         self.canvas.move(0,0)
  
-        button = QPushButton('Refresh', self)
-        button.setToolTip('This s an example button')
+        button = QPushButton('Start', self)
+        button.setToolTip('Start tracking')
         button.move(800,0)
         button.resize(100,100)
-        button.clicked.connect(self.refresh)
+        button.clicked.connect(self.startTracking)
         
-        self.candleTrackerThread = BasThreadCandleTracker(self.pyqts_)
-        #self.connect(self.candleTrackerThread, SIGNAL("newCandle(String)") )
-        self.pyqts_.connect(self.readSignal,type=Qt.AutoConnection)
-        #self.candleTrackerThread.connect(self.readSignal,type=Qt.AutoConnection)
+        
+        
+        
         self.show()
  
  
-    def readSignal(self, data):
+    def candleTrackerThreadListener(self, data):
         print ("signal received:", data)
         
-    def refresh(self):
-        print("refresed!")
-        self.candleTrackerThread.start()
+    def initializerThreadListener(self, event):
+        print ("initializer signal received:", event)
+
+        if event["data"] !=None and event["data"]["action"]!=None and event["data"]["action"]=="showProgressBar":
+            pass
+            self.initializerProgressBar = BasInitializerProgressBarWindow()
+            self.initializerProgressBar.exec_()
+        elif event["data"] !=None and event["data"]["action"]!=None and event["data"]["action"]=="closeProgressBar":
+            self.initializerProgressBar.close()
+            self.initializerProgressBar = None
+        
+    def startTracking(self):
+        print("startTracking!")
+        self.threads["candleTracker"].start()
 
  
     def initBatchBasExecuter(self):
         params={
-            "config.file":"/Users/halil/bas.config.yaml"
+            "config.file":"/Users/halil/bas.config.yaml",
+            "threadSignals":self.threadSignals,
+            "threads":self.threads
             }
         _bas.executer = BasExecuter(params)
         _bas.executer.start()
+
     
+    def initCommunicationChannels(self):
+        self.threads={}
+        self.threads["candleTracker"] = BasThreadCandleTracker(self.threadSignals["candleTracker"])
+        self.threadSignals["candleTracker"].connect(self.candleTrackerThreadListener,type=Qt.AutoConnection)
+        
+        self.threads["initializer"] = BasThreadInitializer(self.threadSignals["initializer"])
+        self.threadSignals["initializer"].connect(self.initializerThreadListener,type=Qt.AutoConnection)
+        
+        
         
     def run(self):
         pass
-        
+        self.initCommunicationChannels() #thread signals
         self.initBatchBasExecuter()
+
         self.initUI()
 
 

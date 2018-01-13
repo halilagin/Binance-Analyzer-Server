@@ -20,7 +20,7 @@ import matplotlib.dates as mdate
 import datetime
 from bas.BasBinanceTimeManager import basTimer
 import math
-from bas.BasCurrencyManager import BasCurrencyManager
+from bas.BasCoinManager import BasCoinManager
 from bas.BasMongoManager import BasMongoManager
 from bas.BasBinanceClientState import BasClientState
 from bas.BasInitializer import BasInitializer
@@ -80,11 +80,13 @@ class BasExecuter(object):
         self.state = BasClientState().state
         
         self.binanceManager = BasBinanceManager() 
-        self.currencyManager = BasCurrencyManager()
+        self.currencyManager = BasCoinManager()
         self.mongoManager = BasMongoManager()
         
         if _bas.executer.configManager.config.bas.application.firstRun==1: #the application is opened first time
-            self.initialize()
+            print ("application is running first time!")
+            #self.initialize()
+            self.params["threads"]["initializer"].start()
         
         
         #self.binanceManager.getRecentTrades("XLMETH")
