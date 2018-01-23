@@ -3,8 +3,8 @@ Created on Jan 12, 2018
 
 @author: halil
 '''
-from PyQt5.Qt import QThread
 import time
+import threading
 from bas.BasContext import _bas
 from bas.BasBinanceTimeManager import basTimer, BasBinanceTimeInterval,\
     basTimeintervalWrapper
@@ -16,17 +16,17 @@ from bas.BasCoinManager import basCoinmanager
 
 #see: http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html
 
-class BasThreadCandleTracker(QThread):
+class BasThreadCandleWriter():
     
         
-        
-        def __init__(self, signal, params={}, parent=None):
-            super(BasThreadCandleTracker, self).__init__(parent)
+        def __init__(self, threadID="BasThreadCandleWriter",params={}, name=None):
+            threading.Thread.__init__(self)
+            self.threadID = threadID
+            self.name = name
             self.state = BasCandleTrackerTrackerState.FirstRun
             
             #params:{symbol:limit,tiemInterval}
             self.params = params
-            self.signal = signal
             self.symbol=None
             self.limit=None
             self.timeInterval=None

@@ -4,6 +4,7 @@ import io
 from  munch import Munch
 from collections import namedtuple
 from bas.BasHashObjectSerializer import BasHashObjectSerializer
+import json
 
 class BasConfigManager(object):
     pass
@@ -27,7 +28,7 @@ class BasConfigManager(object):
             #self.config = Munch( )
             #self.config = namedtuple('Struct', y_.keys())(*y_.values())
             self.config = BasHashObjectSerializer(y_)
-            
+        
         return self.config
         
     def write(self):

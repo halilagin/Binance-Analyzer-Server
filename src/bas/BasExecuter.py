@@ -20,10 +20,14 @@ import matplotlib.dates as mdate
 import datetime
 from bas.BasBinanceTimeManager import basTimer
 import math
+import threading
 from bas.BasCoinManager import BasCoinManager
 from bas.BasMongoManager import BasMongoManager
 from bas.BasBinanceClientState import BasClientState
 from bas.BasInitializer import BasInitializer
+from bas.BasThreadCandleWriter import BasThreadCandleWriter
+from bas.BasThreadInitializer import BasThreadInitializer
+from bas.BasWebSocket import BasWebSocketServer
 
 class BasExecuter(object):
     '''
@@ -43,7 +47,7 @@ class BasExecuter(object):
         
         
         candles = self.binanceManager.getCandles(symbol=symbol, interval=interval)
-        candlesMap = basCR.map(candles)
+        candlesMap = basCandleReader.map(candles)
         candles = np.array(candles,  dtype='f')
         
         time_ = [int(c["openTime"]/1000) for c in candlesMap]
@@ -73,23 +77,42 @@ class BasExecuter(object):
         BasInitializer({}).start()
     # np.array type conversion : https://docs.scipy.org/doc/numpy-1.13.0/user/basics.types.html
     #epoch time matplotlib :https://stackoverflow.com/questions/23294197/plotting-chart-with-epoch-time-x-axis-using-matplotlib
+    
+    def initializeThreads(self):
+        self.threads={}
+        self.threads["candleTracker"] = BasThreadCandleWriter()
+        self.threads["initializer"] = BasThreadInitializer()
+        
+        self.locks={
+            "initializerLock":threading.Lock(),
+            "initializerProgress":0.0,
+            
+            }
+        
     def start(self):
         print ("BasExecuter started!", _bas)
         self.configManager = BasConfigManager(self.params)
         self.configManager.read()
         self.state = BasClientState().state
         
+        
         self.binanceManager = BasBinanceManager() 
         self.currencyManager = BasCoinManager()
         self.mongoManager = BasMongoManager()
+        self.initializeThreads()
+        
+        
         
         if _bas.executer.configManager.config.bas.application.firstRun==1: #the application is opened first time
             print ("application is running first time!")
             #self.initialize()
-            self.params["threads"]["initializer"].start()
+            self.threads["initializer"].start()
         
+        self.webSocketServer = BasWebSocketServer()
+        self.webSocketServer.run()
         
         #self.binanceManager.getRecentTrades("XLMETH")
         
-
+        
+        
        

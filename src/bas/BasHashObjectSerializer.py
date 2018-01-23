@@ -14,3 +14,8 @@ class BasHashObjectSerializer(object):
                setattr(self, a, [BasHashObjectSerializer(x) if isinstance(x, dict) else x for x in b])
             else:
                setattr(self, a, BasHashObjectSerializer(b) if isinstance(b, dict) else b)
+    
+    
+    @staticmethod
+    def ofDict(dict_):
+        return BasHashObjectSerializer(json.loads())
