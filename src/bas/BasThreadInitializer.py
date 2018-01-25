@@ -6,13 +6,12 @@ Created on Jan 12, 2018
 import time
 from bas.BasContext import _bas
 from bas.BasBinanceTimeManager import basTimer
-from bas.BasBinanceClientState import BasCandleTrackerTrackerState
 from bas.BasBinanceCandleReader import basCandleReader
 import pymongo
 from pymongo import *
 import threading
-from bas.BasWebSocket import BasWebSocket, BasWebSocketCandle_clients,\
-    WebSocketWriterManager
+from bas.BasWebSocket import BasWebSocket, BasWebSocketCandle_clients
+    
 
 #see: http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html
 
@@ -34,12 +33,9 @@ class BasThreadInitializer(threading.Thread):
             ], unique=True)
             
         def run(self):
-            pass    
-            _bas.executer.locks["initializerLock"].acquire()
+            pass   
+            BasLocks_initializer.acquire() 
             time.sleep(1)
-
-            _bas.executer.locks["initializerProgress"]=0.0
-            print("init.progress:",_bas.executer.locks["initializerProgress"])
 
 
             
@@ -54,14 +50,17 @@ class BasThreadInitializer(threading.Thread):
             self.initMongoDB()
             for i in range(5):
                 time.sleep(3)
-                _bas.executer.locks["initializerProgress"]=0.1*(i+1)
-                WebSocketWriterManager.pushServerInitializingInProgress(_bas.executer.locks["initializerProgress"])
-                print("init.progress:",_bas.executer.locks["initializerProgress"])
+                BasLocks_initializerProgress=0.1*(i+1)
+                WebSocketWriterManager.pushServerInitializingInProgress(BasLocks_initializerProgress)
+                print("init.progress:",BasLocks_initializerProgress)
                 #self.signal.emit({"source": "initializerThread", "data":{"progress":0.1, "action":None}} )
             
-            _bas.executer.configManager.config.bas.application.firstRun=1
+            _bas.executer.configManager.config.bas.application.firstRun=0
             _bas.executer.configManager.write()
+            
+            _bas.executer.startThreads()
             WebSocketWriterManager().pushServerInitializerFinished()
+            BasLocks_initializer.release()
 
             #self.signal.emit({"source": "initializerThread", "data":{"action":"closeProgressBar","progress":1}} )
             

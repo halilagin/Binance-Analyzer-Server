@@ -4,6 +4,7 @@ Created on Jan 12, 2018
 @author: halil
 '''
 
+import json
 
 
 class BasHashObjectSerializer(object):

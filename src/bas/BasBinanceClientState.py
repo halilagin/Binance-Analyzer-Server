@@ -10,7 +10,7 @@ from bas.BasHashObjectSerializer import BasHashObjectSerializer
 
 
 
-class BasCandleTrackerTrackerState(Enum):
+class BasThreadState(Enum):
     pass
     IDLE=0
     STOP=10
@@ -18,6 +18,7 @@ class BasCandleTrackerTrackerState(Enum):
     Running=30
     ABORT=40
     UNKNOWN=50
+
     
 
 class BasClientState(object):
@@ -28,7 +29,7 @@ class BasClientState(object):
             "candleTracker":{
                 "maxFetchCount":500,
                 "currentFetchCount":10,
-                "state":BasCandleTrackerTrackerState.FirstRun.value
+                "state":BasThreadState.FirstRun.value
                 }
             }
         self.state = BasHashObjectSerializer(self.state_)

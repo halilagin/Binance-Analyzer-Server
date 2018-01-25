@@ -6,9 +6,11 @@ Created on Jan 21, 2018
 from SimpleWebSocketServer.SimpleWebSocketServer import SimpleWebSocketServer
 from SimpleWebSocketServer.SimpleWebSocketServer import WebSocket
 from bas.BasContext import _bas
-import json
-import copy
 from bas.BasHashObjectSerializer import BasHashObjectSerializer
+from bson import json_util
+from bas.BasThreadCandleReader import BasThreadCandleReader
+
+
 # see sudo pip3.6 install git+https://github.com/dpallot/simple-websocket-server.git
 #see https://github.com/dpallot/simple-websocket-server
 
@@ -25,18 +27,26 @@ class BasWebSocketClient(object):
 
 
 BasWebSocketCandle_clients = []
+
 class BasWebSocket(WebSocket):
 
     def handleMessage(self):
         for client in BasWebSocketCandle_clients:
             #if client != self:
-            client.sendMessage(self.address[0] + u' - ' + self.data)
-            clientMessage = BasHashObjectSerializer( json.loads(self.data) )
+            #client.sendMessage(self.address[0] + u' - ' + self.data)
+            clientMessage = BasHashObjectSerializer( json_util.loads(self.data) )
             message = None
-
             if clientMessage.action=="fetchServerState":
                 message = {"serverState":_bas.executer.configManager.config.bas.application.firstRun}
                 client.sendMessage(message)
+            elif clientMessage.action=="registerCandlePlot":
+                print("registerCandlePlot:",self.data)
+                
+                candleReader = BasThreadCandleReader(websocket=client, threadId="candleReader_"+clientMessage.plotParams.plotId, params={"plotClient":clientMessage})
+#                 #_bas.executer.threads["candleReaders"].append(candleReader)
+                candleReader.start()
+                
+        
             
         print ("websocketserver.handlemessage:",self.data)
     
@@ -53,7 +63,7 @@ class BasWebSocket(WebSocket):
                 client=self)
         BasWebSocketCandle_clients.append(client_)
         
-        clientMessage = json.dumps( {
+        clientMessage = json_util.dumps( {
             "action": "subscribe",
             "clientIndex":client_.clientIndex,
             "id": "nativeClient"
@@ -70,31 +80,6 @@ class BasWebSocket(WebSocket):
 #         for client in BasWebScoketCandle_clients:
 #             client.sendMessage(self.address[0] + u' - disconnected')
 
-
-class WebSocketWriterManager(object):
-    pass
-
-    @staticmethod
-    def pushMessage(message):
-        for c in BasWebSocketCandle_clients:
-            c.client.sendMessage(json.dumps(message))
-    
-    
-    
-    
-    @staticmethod
-    def pushServerInitializerStarted():
-        WebSocketWriterManager.pushMessage({"action":"ServerInitializerStarted", "progress":0.0})
-    
-    @staticmethod
-    def pushServerInitializingInProgress(progress):
-        WebSocketWriterManager.pushMessage({"action":"ServerInitializingInProgress", "progress":progress})
-    
-    @staticmethod
-    def pushServerInitializerFinished():
-        WebSocketWriterManager.pushMessage({"action":"ServerInitializerFinished", "data":None})
-    
-        
 
 class BasWebSocketServer():
     '''

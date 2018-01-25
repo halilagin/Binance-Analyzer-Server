@@ -28,6 +28,14 @@ from bas.BasInitializer import BasInitializer
 from bas.BasThreadCandleWriter import BasThreadCandleWriter
 from bas.BasThreadInitializer import BasThreadInitializer
 from bas.BasWebSocket import BasWebSocketServer
+from bas.BasThreadCandleReader import BasThreadCandleReader
+
+
+BasLocks_WebSocketCandleReaderClients=[]
+BasLocks_WebSocketCandleReaderClients_lock=threading.Lock()
+BasLocks_initializer=threading.Lock()
+BasLocks_initializerProgress=0.0
+
 
 class BasExecuter(object):
     '''
@@ -80,14 +88,20 @@ class BasExecuter(object):
     
     def initializeThreads(self):
         self.threads={}
-        self.threads["candleTracker"] = BasThreadCandleWriter()
+        self.threads["candleWriter"] = BasThreadCandleWriter()
+        self.threads["candleReaders"] = [] # array of candle readers per plot
+
         self.threads["initializer"] = BasThreadInitializer()
         
-        self.locks={
-            "initializerLock":threading.Lock(),
-            "initializerProgress":0.0,
-            
-            }
+        
+        
+    def startThreads(self):
+        pass
+        print("starting the threads")
+        self.threads["candleWriter"].start()
+        #self.threads["candleReaders"].start()
+
+        
         
     def start(self):
         print ("BasExecuter started!", _bas)
@@ -107,6 +121,9 @@ class BasExecuter(object):
             print ("application is running first time!")
             #self.initialize()
             self.threads["initializer"].start()
+        else:
+            pass
+            self.startThreads()
         
         self.webSocketServer = BasWebSocketServer()
         self.webSocketServer.run()

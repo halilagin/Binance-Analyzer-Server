@@ -12,6 +12,7 @@ from bas.BasBinanceTimeManager import basTimer, BasBinanceTimeInterval
 from bson.json_util import loads
 from bson.json_util import dumps
 from bson.objectid import ObjectId
+from bas.BasBinanceCandleReader import basCandleReader
 
 # see: https://docs.mongodb.com/manual/reference/mongo-shell/
 # see: https://docs.mongodb.com/manual/crud/
@@ -24,11 +25,14 @@ class BasMongoManager(object):
     '''
 
 
-    def __init__(self):
+    def __init__(self, url=None):
         '''
         Constructor
         '''
-        self.client = MongoClient(_bas.executer.configManager.config.bas.db.mongodb.connection)
+        if url==None:
+            self.client = MongoClient(_bas.executer.configManager.config.bas.db.mongodb.connection)
+        else:
+            self.client = MongoClient(url)
         self.dbbas = self.client.dbbas
         self.candles = self.dbbas.candles        
         self.trades = self.dbbas.trades
@@ -56,6 +60,15 @@ class BasMongoManager(object):
         self.candles.insert_one(candle_)
         list = dumps(self.candles.find({"coin":"XLM"}))
         print (list)
-        
+    
+    def getCandles(self, symbol="XLMETH", timeInterval=60, openTime=None, limit=500):
+        pass
+        candleDocs=[]
+        if openTime==None:
+            candleDocs = list(self.candles.find({"timeInterval":timeInterval},limit=limit).sort([("openTime", pymongo.ASCENDING)]))
+        else:
+            candleDocs = list(self.candles.find({"timeInterval":timeInterval, "openTime":openTime},limit=limit).sort([("openTime", pymongo.ASCENDING)]))
+            
+        return candleDocs
         
         

@@ -126,12 +126,13 @@ class BasBinanceCandleReader(object):
         ]
         return map_
     
-    def mapMongoDoc(self, candles, timeInterval):
+    def mapMongoDoc(self, candles, timeInterval, symbol):
         #time interval can be 1 minute, 5, minute, 15, 1 hour, 1 day. see: BasBinanceTimeInterval
         if len(candles)==0:
             return None
         map_ = [
          {
+          "symbol":symbol,
           "timeInterval":int(timeInterval),
           "openTime": int(c[0]),
           "open":float(c[1]),
@@ -148,6 +149,28 @@ class BasBinanceCandleReader(object):
           "middle": (float(c[1])+float(c[4]))/2.0
           } for c in candles
         ]
+        return map_
+    
+    def copyDoc(self, candleDoc):
+        #time interval can be 1 minute, 5, minute, 15, 1 hour, 1 day. see: BasBinanceTimeInterval
+        map_ = {
+          "symbol":candleDoc["symbol"],
+          "timeInterval":candleDoc["timeInterval"],
+          "openTime": candleDoc["openTime"],
+          "open":candleDoc["open"],
+          "high":candleDoc["high"],
+          "low":candleDoc["low"],
+          "close":candleDoc["close"],
+          "volume":candleDoc["volume"],
+          "closeTime":candleDoc["closeTime"],
+          "assetVolume":candleDoc["assetVolume"],
+          "tradeCount":candleDoc["tradeCount"],
+          "takerBaseVolume":candleDoc["takerBaseVolume"],
+          "takerQuoteVolume":candleDoc["takerQuoteVolume"],
+          "dummy":candleDoc["dummy"],
+          "middle": candleDoc["middle"]
+        } 
+        
         return map_
     
 
