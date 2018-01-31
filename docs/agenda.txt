@@ -1,3 +1,6 @@
+20180131.0114: serverside.threading: 1) accept message from client:"startsubscription" 2) if it is new subscription do it create threads and finish 
+3) if it is a resubscription check previous, kill previous, set up new one as the server and ack client. child threading: check kill signal, if it is received stop socket, kill cliend threads.
+clientside.threading 1) check ack and save it. 2) until ack received do not start plotting clients.
 20180113.0735: candle thread done. writer and reader threads will be adapted. plotting will be managed by reader thread. 
 			   while reading only the updated areas will be plotted.
 2018012.0616: I did the basics. thread example, plot example. I will use pyqtgraph for the plotting. 

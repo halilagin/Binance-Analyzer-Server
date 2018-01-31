@@ -38,25 +38,15 @@ class BasThreadCandleWriter(threading.Thread):
             if "timeInterval" in self.params:
                 self.timeInterval = self.params["timeInterval"]
             
-            self.lastCandleInMongoDB=None
+            self.mostRecentCandle=None
             
         
         
         def saveCandleDocs(self, timeInterval):
             if len(self.candleDocs)==0:
                 return
-            
-            if len(self.candleDocs)==1:
-                _bas.executer.mongoManager.saveUpdate(_bas.executer.mongoManager.candles,self.candleDocs[0])
-                self.lastCandleInMongoDB = self.candleDocs[0]
-            else:
-                lastCandle = self.candleDocs.pop()
-                for cd in self.candleDocs:
-                    _bas.executer.mongoManager.saveUpdate(_bas.executer.mongoManager.candles,cd)
-                #_bas.executer.mongoManager.candles.insert(candleDocs)
-                #_bas.executer.mongoManager.candles.insert_one(lastCandle)
-                _bas.executer.mongoManager.saveUpdate(_bas.executer.mongoManager.candles,lastCandle)
-                self.lastCandleInMongoDB = lastCandle
+            print("[CandleWriter] [saved.candles.count]",len(self.candleDocs))
+            _bas.executer.mongoManager.saveUpdateCollection(_bas.executer.mongoManager.candles,self.candleDocs)
             
         def saveCandles(self, candles, timeInterval, symbol):
             if len(candles)==0:
@@ -68,28 +58,32 @@ class BasThreadCandleWriter(threading.Thread):
          
         def doWork(self):
             #self.signal.emit({"action":"candleTracker", "data":self.candles, "params":self.params})
-            self.candles = _bas.executer.binanceManager.getCandles(
+            if self.mostRecentCandle==None:
+                #print("[CandleWriter] [first time running. grab]", self.limit)
+                self.candles = _bas.executer.binanceManager.getCandles(
+                symbol=self.symbol, 
+                interval= basTimeintervalWrapper.kline(self.timeInterval), 
+                limit=self.limit 
+                #startTime=int(self.lastCandleInMongoDB["openTime"])
+                )
+                
+            else:
+                #print("[CandleWriter] [grap candles starting from most recent candle]", self.mostRecentCandle["openTime"]*1000)
+                self.candles = _bas.executer.binanceManager.getCandles(
                 symbol=self.symbol, 
                 interval= basTimeintervalWrapper.kline(self.timeInterval), 
                 limit=self.limit, 
-                startTime=int(self.lastCandleInMongoDB["openTime"])
+                startTime=int(self.mostRecentCandle["openTime"]*1000) ##saved after dividing 1000, then restore the original back and request.
                 )
-            self.candleDocs = basCandleReader.mapMongoDoc(self.candles,self.timeInterval, self.symbol)
-            print("[thread.candleWriter]","[saved candles]",len(self.candles))
-
-            if len(self.candleDocs)==1:# it returns the lastCandle with new info inside
-                #_bas.executer.mongoManager.candles.update_one(candleDocs[0])
-                _bas.executer.mongoManager.saveUpdate(_bas.executer.mongoManager.candles,self.candleDocs[0] )
-                self.lastCandleInMongoDB = self.candleDocs[0]
-            elif len(self.candleDocs)>1: # there are new candles and the old one inside.
-                first = self.candleDocs[0]
-                #_bas.executer.mongoManager.candles.update_one(candleDocs[0])
-                _bas.executer.mongoManager.saveUpdate(_bas.executer.mongoManager.candles,self.candleDocs[0] )
-                del self.candleDocs[0] #remove the old one because it is already updated, save the remainings.
+            #print("[CandleWriter] [Binance recevied candle count]", len(self.candles))
+            if len(self.candles)>0:
+                self.candleDocs = basCandleReader.mapMongoDoc(self.candles,self.timeInterval, self.symbol)
+                a = self.candleDocs[-1]
+                self.mostRecentCandle = basCandleReader.copyDoc(a)
                 self.saveCandleDocs(self.timeInterval)
-                
             #self.saveCandles(self.candles, self.timeInterval)
-            
+            self.candles = None
+            self.candleDocs = None
         def run(self):
             self.waitTime = _bas.executer.configManager.config.bas.threads.candleWriter.waitTime
             if self.state.value==BasThreadState.FirstRun.value:
@@ -101,13 +95,17 @@ class BasThreadCandleWriter(threading.Thread):
                     self.timeInterval= _bas.executer.configManager.config.bas.default.trade.timeInterval
         
                 #fetchCount = _bas.executer.state.candleTracker.maxFetchCount
-                self.candles = _bas.executer.binanceManager.getCandles(symbol=self.symbol, interval= basTimeintervalWrapper.kline(self.timeInterval), limit=self.limit)
-                self.saveCandles(self.candles, self.timeInterval, self.symbol)
+                #self.candles = _bas.executer.binanceManager.getCandles(symbol=self.symbol, interval= basTimeintervalWrapper.kline(self.timeInterval), limit=self.limit)
                 self.state = BasThreadState.Running.value
-            
+#                 self.candleDocs = basCandleReader.mapMongoDoc(self.candles,self.timeInterval, self.symbol)
+#                 if len(self.candleDocs)>0:
+#                     a = self.candleDocs[-1]
+#                     self.mostRecentCandle = basCandleReader.copyDoc(a)
+#                     self.saveCandles(self.candles, self.timeInterval, self.symbol)
+                
             
             
             while True:
-                self.doWork()
                 time.sleep(self.waitTime)
+                self.doWork()
 

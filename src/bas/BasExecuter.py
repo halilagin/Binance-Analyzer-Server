@@ -36,6 +36,9 @@ BasLocks_WebSocketCandleReaderClients_lock=threading.Lock()
 BasLocks_initializer=threading.Lock()
 BasLocks_initializerProgress=0.0
 
+#hash <client id,[threads]> 
+BasLocks_ClientThreads={}
+
 
 class BasExecuter(object):
     '''

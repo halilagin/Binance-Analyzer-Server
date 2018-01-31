@@ -11,6 +11,8 @@ import pymongo
 from pymongo import *
 import threading
 from bas.BasWebSocket import BasWebSocket, BasWebSocketCandle_clients
+from bas.BasExecuter import BasLocks_initializer
+from bas.BasWebSocketWriterManager import BasWebSocketWriterManager
     
 
 #see: http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html
@@ -40,10 +42,10 @@ class BasThreadInitializer(threading.Thread):
 
             
             while len(BasWebSocketCandle_clients)==0:
-                print("waiting a client for connecting...")
+                print("waiting a client to connect...")
                 time.sleep(2)
             
-            WebSocketWriterManager().pushServerInitializerStarted()
+            BasWebSocketWriterManager().pushServerInitializerStarted()
             
             #self.signal.emit({"source": "initializerThread", "data":{"action":"showProgressBar","progress":0.1}} )
             time.sleep(1)
@@ -51,7 +53,7 @@ class BasThreadInitializer(threading.Thread):
             for i in range(5):
                 time.sleep(3)
                 BasLocks_initializerProgress=0.1*(i+1)
-                WebSocketWriterManager.pushServerInitializingInProgress(BasLocks_initializerProgress)
+                BasWebSocketWriterManager().pushServerInitializingInProgress(BasLocks_initializerProgress)
                 print("init.progress:",BasLocks_initializerProgress)
                 #self.signal.emit({"source": "initializerThread", "data":{"progress":0.1, "action":None}} )
             
@@ -59,7 +61,7 @@ class BasThreadInitializer(threading.Thread):
             _bas.executer.configManager.write()
             
             _bas.executer.startThreads()
-            WebSocketWriterManager().pushServerInitializerFinished()
+            BasWebSocketWriterManager().pushServerInitializerFinished()
             BasLocks_initializer.release()
 
             #self.signal.emit({"source": "initializerThread", "data":{"action":"closeProgressBar","progress":1}} )

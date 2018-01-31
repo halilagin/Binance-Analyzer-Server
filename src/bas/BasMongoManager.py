@@ -47,6 +47,11 @@ class BasMongoManager(object):
             collection.insert_one(doc)
         else:
             collection.replace_one({"timeInterval":int(doc["timeInterval"]), "openTime":int(doc["openTime"])}, doc, True)
+    
+    def saveUpdateCollection(self,collection, docs):
+        for d in docs:
+            self.saveUpdate(collection, d)
+            
     def testConnection(self):
         pass
         candle_ = {"symbol":"XLMETH", 

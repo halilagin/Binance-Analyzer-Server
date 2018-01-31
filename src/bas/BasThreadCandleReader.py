@@ -14,17 +14,19 @@ from bas.BasCoinManager import basCoinmanager
 import copy 
 import json
 from bson import json_util
+from bas.BasExecuter import BasLocks_ClientThreads
 
 
 
 #see: http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html
-
+#see: stop event https://www.safaribooksonline.com/library/view/python-cookbook-2nd/0596007973/ch09s03.html
 
 
 class BasThreadCandleReader(threading.Thread):
     
         
         def __init__(self, websocket=None, threadId="BasThreadCandleReader",params={}, name=None):
+            self._stopevent = threading.Event( )
             threading.Thread.__init__(self)
             self.threadId = threadId
             self.name = name
@@ -48,7 +50,7 @@ class BasThreadCandleReader(threading.Thread):
                 self.timeInterval = self.params["timeInterval"]
             
             self.lastCandleInMongoDB=None
-        
+
         
         def pushCandles(self, candles):
             #plotClientId, symbol, timeInterval, mostRecentCandle, 
@@ -101,8 +103,7 @@ class BasThreadCandleReader(threading.Thread):
             if len(self.candleDocs)>0:
                 a = self.candleDocs[-1]
                 self.mostRecentCandle = basCandleReader.copyDoc(a)
-                        #print("[thread.candleWriter]","[candles read]",len(self.candleDocs))
-            self.pushCandles(self.candleDocs)
+                self.pushCandles(self.candleDocs)
 
             
         def run(self):
@@ -117,17 +118,35 @@ class BasThreadCandleReader(threading.Thread):
                     self.timeInterval= _bas.executer.configManager.config.bas.default.trade.timeInterval
         
                 #fetchCount = _bas.executer.state.candleTracker.maxFetchCount
-                self.candleDocs = _bas.executer.mongoManager.getCandles(symbol=self.symbol, timeInterval= self.timeInterval, limit=self.limit)
+                #self.candleDocs = _bas.executer.mongoManager.getCandles(symbol=self.symbol, timeInterval= self.timeInterval, limit=self.limit)
                 
                 self.state = BasThreadState.Running.value
-                if len(self.candleDocs)>0:
-                    a = self.candleDocs[-1]
-                    self.mostRecentCandle = basCandleReader.copyDoc(a)
-                    self.pushCandles(self.candleDocs)
+#                 if len(self.candleDocs)>0:
+#                     a = self.candleDocs[-1]
+#                     self.mostRecentCandle = basCandleReader.copyDoc(a)
+#                     self.pushCandles(self.candleDocs)
 
                 
             
-            while True:
+            while not self._stopevent.isSet( ):
+                #time.sleep(self.waitTime)
+                self._stopevent.wait(self.waitTime)
                 self.doWork()
-                time.sleep(self.waitTime)
+                self.stopIfClientLost()
+                
+        
+        def stopIfClientLost(self):
+            clientId_ = self.params.plotClient.clientInfo.clientId
+            if clientId_ not in BasLocks_ClientThreads:
+                self.stopWorking()
+            
+       
+        
+        
+        def stopWorking(self, timeout=15.0):
+            """ Stop the thread and wait for it to end. """
+            self.websocket.close()
+            self._stopevent.set( )
+            threading.Thread.join(self, timeout)
+                
 

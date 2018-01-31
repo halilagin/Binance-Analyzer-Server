@@ -134,7 +134,7 @@ class BasBinanceCandleReader(object):
          {
           "symbol":symbol,
           "timeInterval":int(timeInterval),
-          "openTime": int(c[0]),
+          "openTime": int(int(c[0])/1000),
           "open":float(c[1]),
           "high":float(c[2]),
           "low":float(c[3]),
