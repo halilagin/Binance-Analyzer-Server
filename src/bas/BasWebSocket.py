@@ -10,7 +10,9 @@ from bas.BasHashObjectSerializer import BasHashObjectSerializer
 from bson import json_util
 from bas.BasThreadCandleReader import BasThreadCandleReader
 import uuid
-from bas.BasExecuter import BasLocks_ClientThreads
+from bas.BasVars import BasWebSocketCandle_clients, BasLocks_ClientThreads,\
+    BasLocks_PingedWebSocketClients
+import timeit
 
 
 # see sudo pip3.6 install git+https://github.com/dpallot/simple-websocket-server.git
@@ -20,15 +22,13 @@ from bas.BasExecuter import BasLocks_ClientThreads
 
 class BasWebSocketClient(object):
     pass
-    def __init__(self, clientIndex=None, id=None, client=None):
-        self.clientIndex = clientIndex
+    def __init__(self,  id=None, client=None):
         self.id = uuid.uuid4().__str__()
         self.client = client
         
     
 
 
-BasWebSocketCandle_clients = {}
 
 class BasWebSocket(WebSocket):
 
@@ -41,45 +41,83 @@ class BasWebSocket(WebSocket):
         if clientMessage.action=="fetchServerState":
             message = {"serverState":_bas.executer.configManager.config.bas.application.firstRun}
             self.sendMessage(message)
-        elif clientMessage.action=="finishNewSubscription":
+        elif clientMessage.action=="startNewSubscription":
             #dont do anything it is already subscribed!
+            print("finishNewSubscription",clientMessage)
             self.finishNewSubscription(clientMessage)
-        elif clientMessage.action=="finishReSubscription":
+            
+        elif clientMessage.action=="startReSubscription":
             #there is a client registered in server side with the id clientIdInServerSide.
             #that client received new subscription. replace clientIdInLocalstorage with clientIdInServerSide
-            self.finishReSubscription(clientMessage)
+            print("startReSubscription",clientMessage)
+            self.startReSubscription(clientMessage)
         
         elif clientMessage.action=="registerCandlePlot":
             print("registerCandlePlot:",self.data)
+            self.registerCandlePlot(clientMessage)
+        elif clientMessage.action=="ping":
+            self.ping(clientMessage)
             
-            if clientMessage.clientInfo.clientId not in BasLocks_ClientThreads:
-                BasLocks_ClientThreads[clientMessage.clientInfo.clientId] ={}
-                
-            if "threads" not in BasLocks_ClientThreads[clientMessage.clientInfo.clientId]:
-                BasLocks_ClientThreads[clientMessage.clientInfo.clientId]["threads"]=[]
             
-            candleReader = BasThreadCandleReader(websocket=self, threadId="candleReader_"+clientMessage.plotParams.plotId, params={"plotClient":clientMessage})
-            BasLocks_ClientThreads[clientMessage.clientInfo.clientId]["threads"].append(candleReader) 
-            candleReader.start()
                 
         
             
         print ("websocketserver.handlemessage:",self.data)
     
+    
+    def ping(self, message):
+        if 'clientId' in message.__dict__:
+            if message.clientId not in BasLocks_PingedWebSocketClients:
+                BasLocks_PingedWebSocketClients[message.clientId]={}
+                BasLocks_PingedWebSocketClients[message.clientId]["accessTime"]=timeit.time.time()
+                BasLocks_PingedWebSocketClients[message.clientId]["plots"]={}
+        if 'plotId' in message.__dict__:
+            if "plots" not in BasLocks_PingedWebSocketClients[message.clientId]:
+                BasLocks_PingedWebSocketClients[message.clientId]["plots"]={}
+            BasLocks_PingedWebSocketClients[message.clientId]["plots"][message.plotId]=timeit.time.time()
+        
+                
+    
+    def registerCandlePlot(self,clientMessage):
+        if clientMessage.clientInfo.clientId not in BasLocks_ClientThreads:
+            BasLocks_ClientThreads[clientMessage.clientInfo.clientId] ={}
+                
+        if "threads" not in BasLocks_ClientThreads[clientMessage.clientInfo.clientId]:
+            BasLocks_ClientThreads[clientMessage.clientInfo.clientId]["threads"]={}
+        
+        if "candleReader_"+clientMessage.plotParams.plotId not in  BasLocks_ClientThreads[clientMessage.clientInfo.clientId]["threads"]:
+            threadId = "candleReader_"+clientMessage.plotParams.plotId  #plotClientId
+            clientId=clientMessage.clientInfo.clientId
+            candleReader = BasThreadCandleReader(websocket=self, threadId=threadId, params={"plotClient":clientMessage})
+            BasLocks_ClientThreads[clientId]["threads"][threadId]=candleReader 
+            candleReader.start()
    
 #see:stop thread  https://www.safaribooksonline.com/library/view/python-cookbook-2nd/0596007973/ch09s03.html
-    def finishReSubscription (self, message):
+    def startReSubscription (self, message):
         pass
         #stop threads
-        if message.clientInfo.clientId not in BasLocks_ClientThreads:
+        
+        if message.clientInfo.clientIdPreviouslySubscribed not in BasLocks_ClientThreads:
+            self.ackSubscription({
+                "action": "ackReSubscription",
+                "clientId":message.clientInfo.clientIdNewlyBeingSubscribed
+                })
             return
-        if "threads" not in BasLocks_ClientThreads[message.clientInfo.clientId]:
+        if "threads" not in BasLocks_ClientThreads[message.clientInfo.clientIdPreviouslySubscribed]:
+            self.ackSubscription({
+                "action": "ackReSubscription",
+                "clientId":message.clientInfo.clientIdNewlyBeingSubscribed
+                })
             return
         
-        if  len(BasLocks_ClientThreads[message.clientInfo.clientId]["threads"])==0:
+        if  len(BasLocks_ClientThreads[message.clientInfo.clientIdPreviouslySubscribed]["threads"])==0:
+            self.ackSubscription({
+                "action": "ackReSubscription",
+                "clientId":message.clientInfo.clientIdNewlyBeingSubscribed
+                })
             return
         
-        for thread_ in BasLocks_ClientThreads[message.clientInfo.clientId]["threads"]:
+        for thread_ in BasLocks_ClientThreads[message.clientInfo.clientIdPreviouslySubscribed]["threads"]:
             thread_.stopWorking()
             
         
@@ -88,10 +126,11 @@ class BasWebSocket(WebSocket):
         clientId = message.clientInfo.clientIdPreviouslySubscribed
         for ws in BasWebSocketCandle_clients:
             if ws.id==clientId:
-                BasWebSocketCandle_clients.remove(ws.id)
+                del BasWebSocketCandle_clients[ws.id]
+                
          
         self.ackSubscription({
-            "action": "ackSubscription",
+            "action": "ackReSubscription",
             "clientId":message.clientInfo.clientIdNewlyBeingSubscribed
             } )
         
@@ -99,7 +138,7 @@ class BasWebSocket(WebSocket):
     def finishNewSubscription(self, message):
          
         self.ackSubscription({
-            "action": "ackSubscription",
+            "action": "ackNewSubscription",
             "clientId":message.clientInfo.clientId
         } )
         
@@ -115,13 +154,12 @@ class BasWebSocket(WebSocket):
         
         client_ =  BasWebSocketClient(
                 id=uuid.uuid4(),#random uuid
-                clientIndex=len(BasWebSocketCandle_clients),
                 client=self)
         BasWebSocketCandle_clients[client_.id]=client_
         
         clientMessage = json_util.dumps( {
             "action": "startSubscription",
-            "clientIndex":client_.clientIndex,
+            "clientId":client_.id,
             "websocketServerId":client_.id,
             
             "id": "nativeClient"
@@ -133,7 +171,8 @@ class BasWebSocket(WebSocket):
 #             BasWebScoketCandle_clients.append(self)
 
     def handleClose(self):
-        BasWebSocketCandle_clients.remove(self)
+        #del BasWebSocketCandle_clients[ws.id]
+        #BasWebSocketCandle_clients.remove(self)
         print(self.address, 'closed')
 #         for client in BasWebScoketCandle_clients:
 #             client.sendMessage(self.address[0] + u' - disconnected')

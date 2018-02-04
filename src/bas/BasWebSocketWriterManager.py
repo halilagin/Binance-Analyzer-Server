@@ -3,7 +3,6 @@ Created on Jan 24, 2018
 
 @author: halil
 '''
-from bas.BasWebSocket import BasWebSocketCandle_clients
 from bson import json_util
 
 

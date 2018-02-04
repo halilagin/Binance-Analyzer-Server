@@ -29,15 +29,8 @@ from bas.BasThreadCandleWriter import BasThreadCandleWriter
 from bas.BasThreadInitializer import BasThreadInitializer
 from bas.BasWebSocket import BasWebSocketServer
 from bas.BasThreadCandleReader import BasThreadCandleReader
+from bas.BasThreadCleaner import BasThreadCleaner
 
-
-BasLocks_WebSocketCandleReaderClients=[]
-BasLocks_WebSocketCandleReaderClients_lock=threading.Lock()
-BasLocks_initializer=threading.Lock()
-BasLocks_initializerProgress=0.0
-
-#hash <client id,[threads]> 
-BasLocks_ClientThreads={}
 
 
 class BasExecuter(object):
@@ -102,6 +95,8 @@ class BasExecuter(object):
         pass
         print("starting the threads")
         self.threads["candleWriter"].start()
+        cleaner = BasThreadCleaner()
+        cleaner.start()
         #self.threads["candleReaders"].start()
 
         

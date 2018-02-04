@@ -11,8 +11,8 @@ import pymongo
 from pymongo import *
 import threading
 from bas.BasWebSocket import BasWebSocket, BasWebSocketCandle_clients
-from bas.BasExecuter import BasLocks_initializer
 from bas.BasWebSocketWriterManager import BasWebSocketWriterManager
+from bas.BasVars import BasLocks_initializer
     
 
 #see: http://pyqt.sourceforge.net/Docs/PyQt5/signals_slots.html

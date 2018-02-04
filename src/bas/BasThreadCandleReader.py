@@ -14,7 +14,7 @@ from bas.BasCoinManager import basCoinmanager
 import copy 
 import json
 from bson import json_util
-from bas.BasExecuter import BasLocks_ClientThreads
+from bas.BasVars import BasLocks_ClientThreads
 
 
 
@@ -54,9 +54,9 @@ class BasThreadCandleReader(threading.Thread):
         
         def pushCandles(self, candles):
             #plotClientId, symbol, timeInterval, mostRecentCandle, 
-            print("sending candles to plotClientId:"+self.plotClient.plotParams.plotId, candles)
-            self.websocket.client.sendMessage(json_util.dumps({
-            "plotClientId":self.plotClient.plotParams.plotId,
+            print("sending candles to clientId, plotId:",self.plotClient.clientInfo.clientId, self.plotClient.plotParams.plotId,  len(candles))
+            self.websocket.sendMessage(json_util.dumps({
+            "plotId":self.plotClient.plotParams.plotId,
             "action":"retrieveCandles", 
             "symbol":self.plotClient.plotParams.symbol, 
             "timeInterval":self.plotClient.plotParams.timeInterval,
@@ -136,7 +136,7 @@ class BasThreadCandleReader(threading.Thread):
                 
         
         def stopIfClientLost(self):
-            clientId_ = self.params.plotClient.clientInfo.clientId
+            clientId_ = self.plotClient.clientInfo.clientId
             if clientId_ not in BasLocks_ClientThreads:
                 self.stopWorking()
             
@@ -145,7 +145,7 @@ class BasThreadCandleReader(threading.Thread):
         
         def stopWorking(self, timeout=15.0):
             """ Stop the thread and wait for it to end. """
-            self.websocket.close()
+            #self.websocket.close()
             self._stopevent.set( )
             threading.Thread.join(self, timeout)
                 
